@@ -1,4 +1,3 @@
-// app/page.js
 'use client';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -40,7 +39,7 @@ export default function Page() {
       if (user) {
         setUser(user);
         setCurrentPage('inventory');
-        updateInventory();
+        updateInventory(user);
       } else {
         setUser(null);
         setCurrentPage('landing');
@@ -83,41 +82,52 @@ export default function Page() {
     setCurrentPage('landing');
   };
 
-  const updateInventory = async () => {
-    const snapshot = query(collection(firestore, 'inventory'));
-    const docs = await getDocs(snapshot);
-    const inventoryList = docs.docs.map(doc => ({ name: doc.id, ...doc.data() }));
+  const updateInventory = async (user) => {
+    if (!user) return;
+    const userInventoryRef = collection(firestore, 'users', user.uid, 'inventory');
+    const snapshot = await getDocs(userInventoryRef);
+    const inventoryList = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(item => item.name && item.name.trim() !== ''); // Filter out invalid items
     setInventory(inventoryList);
   };
 
-  const addItem = async (item, category) => {
-    const docRef = doc(collection(firestore, 'inventory'), item);
+  const addItem = async (itemName, category) => {
+    if (!user || !itemName || itemName.trim() === '') return; // Ensure valid itemName
+    const userInventoryRef = collection(firestore, 'users', user.uid, 'inventory');
+    const docRef = doc(userInventoryRef, itemName);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const { quantity, category: existingCategory } = docSnap.data();
-      await setDoc(docRef, { quantity: quantity + 1, category: existingCategory });
+      await setDoc(docRef, { name: itemName, quantity: quantity + 1, category: existingCategory });
     } else {
-      await setDoc(docRef, { quantity: 1, category });
+      await setDoc(docRef, { name: itemName, quantity: 1, category });
     }
-    await updateInventory();
+    await updateInventory(user);
   };
 
-  const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, 'inventory'), item);
+  const removeItem = async (itemName) => {
+    if (!user || !itemName) return;
+    const userInventoryRef = collection(firestore, 'users', user.uid, 'inventory');
+    const docRef = doc(userInventoryRef, itemName);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const { quantity, category } = docSnap.data();
       if (quantity === 1) {
         await deleteDoc(docRef);
       } else {
-        await setDoc(docRef, { quantity: quantity - 1, category });
+        await setDoc(docRef, { name: itemName, quantity: quantity - 1, category });
       }
     }
-    await updateInventory();
+    await updateInventory(user);
   };
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setItemName('');
+    setCategory('');
+    setOpen(false);
+  };
 
   const categorizedInventory = inventory.reduce((acc, item) => {
     const { category } = item;
@@ -131,7 +141,7 @@ export default function Page() {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Inventory Managemer Pro
+            Inventory Manager Pro
           </Typography>
           {user ? (
             <Button color="inherit" onClick={handleLogout}>
@@ -148,7 +158,7 @@ export default function Page() {
       <Container maxWidth="md" sx={{ mt: 4 }}>
         {currentPage === 'landing' && (
           <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh" textAlign="center">
-            <Typography variant="h4" gutterBottom>Welcome to Inventory Managemer Pro</Typography>
+            <Typography variant="h4" gutterBottom>Welcome to Inventory Manager Pro</Typography>
             <Typography variant="h6" align="center" gutterBottom>
               Manage your inventory effortlessly with our app. Keep track of your items, add new ones, and update quantities all in one place.
             </Typography>
@@ -237,9 +247,9 @@ export default function Page() {
                 <Box key={category} sx={{ mb: 4 }}>
                   <Typography variant="h5" sx={{ mb: 2 }}>{category.charAt(0).toUpperCase() + category.slice(1)}</Typography>
                   <Stack spacing={2}>
-                    {categorizedInventory[category].map(({ name, quantity }) => (
+                    {categorizedInventory[category].map(({ id, name, quantity }) => (
                       <Box
-                        key={name}
+                        key={id}
                         display="flex"
                         justifyContent="space-between"
                         alignItems="center"
@@ -247,7 +257,7 @@ export default function Page() {
                         sx={{ bgcolor: '#f0f0f0', borderRadius: 1 }}
                       >
                         <Typography variant="h6" sx={{ flex: 1 }}>
-                          {name.charAt(0).toUpperCase() + name.slice(1)}
+                          {name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Unnamed Item'}
                         </Typography>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <IconButton onClick={() => removeItem(name)}>
@@ -296,10 +306,14 @@ export default function Page() {
                     </Select>
                   </FormControl>
                   <Button variant="outlined" onClick={() => {
-                    addItem(itemName, category);
-                    setItemName('');
-                    setCategory('');
-                    handleClose();
+                    if (itemName && category) {
+                      addItem(itemName, category);
+                      setItemName('');
+                      setCategory('');
+                      handleClose();
+                    } else {
+                      alert('Please provide both item name and category.');
+                    }
                   }}>
                     Add
                   </Button>
