@@ -148,7 +148,7 @@ export default function Page() {
       <Container maxWidth="md" sx={{ mt: 4 }}>
         {currentPage === 'landing' && (
           <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh" textAlign="center">
-            <Typography variant="h2" gutterBottom>Welcome to Inventory Managemer Pro</Typography>
+            <Typography variant="h4" gutterBottom>Welcome to Inventory Managemer Pro</Typography>
             <Typography variant="h6" align="center" gutterBottom>
               Manage your inventory effortlessly with our app. Keep track of your items, add new ones, and update quantities all in one place.
             </Typography>
