@@ -1,12 +1,40 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { AppBar, Toolbar, Typography, Button, Box, Container, TextField, Stack, Paper, IconButton, Modal, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Container,
+  TextField,
+  Stack,
+  Paper,
+  IconButton,
+  Modal,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material';
 import { Add, Remove } from '@mui/icons-material';
 import { auth, firestore } from '@/firebase';
 import { login, register, logout } from '@/auth';
-import { collection, doc, getDocs, query, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  getDoc,
+} from 'firebase/firestore';
 import Image from 'next/image';
+import axios from 'axios';
 
 const style = {
   position: 'absolute',
@@ -87,19 +115,23 @@ export default function Page() {
     const userInventoryRef = collection(firestore, 'users', user.uid, 'inventory');
     const snapshot = await getDocs(userInventoryRef);
     const inventoryList = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(item => item.name && item.name.trim() !== ''); // Filter out invalid items
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((item) => item.name && item.name.trim() !== ''); // Filter out invalid items
     setInventory(inventoryList);
   };
 
   const addItem = async (itemName, category) => {
-    if (!user || !itemName || itemName.trim() === '') return; // Ensure valid itemName
+    if (!user || !itemName || itemName.trim() === '') return;
     const userInventoryRef = collection(firestore, 'users', user.uid, 'inventory');
     const docRef = doc(userInventoryRef, itemName);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const { quantity, category: existingCategory } = docSnap.data();
-      await setDoc(docRef, { name: itemName, quantity: quantity + 1, category: existingCategory });
+      await setDoc(docRef, {
+        name: itemName,
+        quantity: quantity + 1,
+        category: existingCategory,
+      });
     } else {
       await setDoc(docRef, { name: itemName, quantity: 1, category });
     }
