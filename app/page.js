@@ -334,6 +334,8 @@ export default function Page() {
                       <MenuItem value="dairy">Dairy</MenuItem>
                       <MenuItem value="fruit">Fruit</MenuItem>
                       <MenuItem value="vegetable">Vegetable</MenuItem>
+                      <MenuItem value="nuts">Nuts</MenuItem>
+                      <MenuItem value="wheat">Wheat</MenuItem>
                       <MenuItem value="other">Other</MenuItem>
                     </Select>
                   </FormControl>
